@@ -600,3 +600,74 @@ drop tsid,
 drop teid;
 
 
+
+
+
+-- deleting ride_id (we create a new ride_id of INT type after)
+ALTER TABLE tripdata2023_cleaned DROP COLUMN ride_id;
+
+-- Create a new Primary key ride_id of INT type (to make the data size smaller and more efficient)
+ALTER TABLE tripdata2023_cleaned ADD COLUMN ride_id INT AUTO_INCREMENT PRIMARY KEY;
+
+
+
+# changing the station_id to an INT type for storage efficiency
+ALTER TABLE stations ADD COLUMN station_id INT AUTO_INCREMENT PRIMARY KEY;
+
+# creating a new tripdata table with the new station_ids created above for the start_station_id and end_station_id (removing the old ids)
+CREATE TABLE tripdata2023_cleanedv2 AS
+SELECT 
+	t.ride_id, 
+    t.rideable_type, 
+    s.station_id AS start_station_id, 
+    e.station_id AS end_station_id, 
+    t.started_at, 
+    t.ended_at,
+	t.member_casual
+from tripdata2023_cleaned AS t
+JOIN stations AS s
+ON t.start_station_id = s.id
+JOIN stations AS e
+ON t.end_station_id = e.id;
+
+
+-- changig the column member_casual to 0 if member and 1 if casual
+UPDATE tripdata2023_cleanedv2
+SET member_casual = 
+	CASE TRIM(TRAILING '\r' FROM TRIM(TRAILING '\n' FROM member_casual))
+		WHEN  'member' THEN 1
+		WHEN  'casual' THEN 0
+	END;
+ALTER TABLE tripdata2023_cleanedv2
+MODIFY COLUMN member_casual TINYINT;
+
+-- changig the column rideable_type to 1 if classic_bike, 2 if electric_bike, 3 if docked_bike
+UPDATE tripdata2023_cleanedv2
+SET rideable_type = 
+	CASE TRIM(TRAILING '\r' FROM TRIM(TRAILING '\n' FROM rideable_type))
+		WHEN 'classic_bike' then 1
+        WHEN 'electric_bike' then 2
+        WHEN 'docked_bike' then 3
+        END;
+ALTER TABLE tripdata2023_cleanedv2
+MODIFY COLUMN rideable_type TINYINT;
+
+
+
+-- deleting the old id from stations table
+ALTER TABLE stations DROP COLUMN id;
+
+
+
+
+CREATE TABLE tripdata2023v6 AS
+SELECT 
+	ride_id,
+    rideable_type,
+    start_station_id,
+    end_station_id,
+    started_at,
+    ended_at,
+    member_casual
+FROM tripdata2023_cleanedv2
+
