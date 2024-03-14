@@ -8,8 +8,8 @@ SELECT
     'member_casual'
 UNION 
 SELECT *
-FROM tripdata2023v6
-INTO OUTFILE 'tripdata2023_cleanedv7.csv'
+FROM tripdata2023_cleanedv2
+INTO OUTFILE 'tripdata2023_cleanedv2.csv'
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n';
